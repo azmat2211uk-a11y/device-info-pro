@@ -1,2 +1,344 @@
-# device-info-pro
-A modern device information dashboard for hardware, display, network, sensors, and browser details.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Device Info Pro</title>
+<style>
+:root{--bg:#04070a;--bg2:#0a1a1f;--card:rgba(255,255,255,.06);--bd:rgba(0,255,200,.22);--tx:#e6fff8;--mu:#86aea3;--ac:#00ffc3;--ac2:#00d4ff;--ok:#33ff99;--no:#ff5470;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+:root[data-theme="light"]{--bg:#eefaf7;--bg2:#d8f1ec;--card:rgba(255,255,255,.75);--bd:rgba(0,120,100,.25);--tx:#06231d;--mu:#4b6f66;--ac:#00836a;--ac2:#007a99;--ok:#0a8f4d;--no:#c4223c;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(circle at 20% 0,var(--bg2),var(--bg) 60%) fixed;color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:0 14px 96px;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 0 8px}
+h1{font-size:20px;margin:0;background:linear-gradient(90deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.5px}
+button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:9px 13px;cursor:pointer;transition:.2s}
+button:hover,button:active{box-shadow:0 0 14px var(--ac);border-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:14px;margin:12px 0;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 0 22px rgba(0,255,195,.07)}
+.card h2{margin:0 0 8px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ac)}
+dl{margin:0}
+dl>div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid rgba(128,255,220,.1)}
+dl>div:last-child{border:0}
+dt{color:var(--mu)}
+dd{margin:0;text-align:right;word-break:break-word;max-width:62%}
+.ok{color:var(--ok)}.no{color:var(--no)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0}
+.chip{flex:0 0 auto;border:1px solid var(--bd);border-radius:14px;padding:8px 12px;background:var(--card);min-width:84px}
+.chip b{display:block;color:var(--ac);font-size:17px}.chip small{color:var(--mu)}
+.pn{display:none}.pn.on{display:block;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--bg);border-top:1px solid var(--bd);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:5;overflow-x:auto}
+nav button{flex:1 0 auto;border:0;background:none;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--mu)}
+nav button.on{color:var(--ac);text-shadow:0 0 10px var(--ac)}
+.sk{height:18px;border-radius:8px;margin:10px 0;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(0,255,195,.18),rgba(255,255,255,.04));background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.bar{height:8px;border-radius:6px;background:rgba(128,255,220,.12);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .15s}
+.sb{display:grid;grid-template-columns:90px 1fr 70px;gap:8px;align-items:center;margin:6px 0;font-size:13px}
+.sb span:last-child{text-align:right;color:var(--mu)}
+canvas{width:100%;border-radius:12px;background:#000;border:1px solid var(--bd)}
+.gauge{text-align:center}
+.gauge svg{width:230px;max-width:80%}
+.note{color:var(--mu);font-size:13px}
+#md,#dp{position:fixed;inset:0;z-index:20;display:none}
+#md{background:rgba(0,0,0,.8);padding:20px;align-items:center;justify-content:center}
+#md.on{display:flex}
+#md .box{background:var(--bg);border:1px solid var(--ac);border-radius:18px;padding:14px;width:100%;max-width:560px}
+#md textarea{width:100%;height:46vh;background:#000;color:#9fffe0;border:1px solid var(--bd);border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,monospace}
+#dp.on{display:block}
+</style>
+</head>
+<body>
+<header><h1>⚡ Device Info Pro</h1>
+<div><button id="bl">EN | RU</button> <button id="bt">◐</button></div></header>
+
+<section class="pn on" id="p-ov">
+ <div class="chips" id="chips"></div>
+ <div class="card"><h2 data-i="overview">Overview</h2><dl id="ov"></dl></div>
+ <div class="row"><button id="bc" data-i="copy">Copy all info</button><button id="bs" data-i="share">Share as text</button><button id="be" data-i="export">Export report</button></div>
+ <div class="card"><h2>ℹ</h2><p class="note" data-i="notice"></p></div>
+</section>
+
+<section class="pn" id="p-hw">
+ <div class="card"><h2 data-i="hardware">Hardware</h2><dl id="hw"></dl>
+ <div class="bar" style="margin-top:10px"><i id="sbar"></i></div></div>
+</section>
+
+<section class="pn" id="p-ds">
+ <div class="card"><h2 data-i="display">Display</h2><dl id="ds"></dl></div>
+ <div class="row"><button id="bh" data-i="hzt">Refresh rate test</button><button id="bd" data-i="dead">Dead pixel test</button></div>
+</section>
+
+<section class="pn" id="p-nw">
+ <div class="card"><h2 data-i="network">Network</h2><dl id="nw"></dl></div>
+ <div class="row"><button id="bsp" data-i="speed">Speed test</button></div>
+ <p class="note" id="spd"></p>
+</section>
+
+<section class="pn" id="p-sn">
+ <div class="card"><h2 data-i="sensors">Sensors</h2><dl id="sup"></dl></div>
+ <div class="row"><button id="bse" data-i="sens">Start sensors</button><button id="blo" data-i="loc">Show location</button></div>
+ <div class="card" id="sbx"></div>
+ <p class="note" id="geo"></p>
+</section>
+
+<section class="pn" id="p-pf">
+ <div class="card gauge"><svg viewBox="0 0 200 120"><defs><linearGradient id="g"><stop offset="0" stop-color="#00ffc3"/><stop offset="1" stop-color="#00d4ff"/></linearGradient></defs>
+ <path d="M20 100A80 80 0 0 1 180 100" fill="none" stroke="rgba(128,255,220,.15)" stroke-width="14" stroke-linecap="round"/>
+ <path id="arc" d="M20 100A80 80 0 0 1 180 100" fill="none" stroke="url(#g)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3" style="transition:stroke-dashoffset .4s"/>
+ <text id="gn" x="100" y="92" text-anchor="middle" font-size="34" fill="currentColor" font-weight="700">0</text>
+ <text x="100" y="112" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">FPS</text></svg></div>
+ <div class="card"><h2 data-i="performance">Performance</h2><dl id="pr"></dl></div>
+ <div class="row"><button id="bst" data-i="stress">10s stress test</button><button id="bcp" data-i="cpu">CPU benchmark</button></div>
+ <canvas id="stc" width="300" height="160"></canvas>
+ <canvas id="gr" width="300" height="120" style="margin-top:10px"></canvas>
+</section>
+
+<section class="pn" id="p-br">
+ <div class="card"><h2 data-i="browser">Browser</h2><dl id="br"></dl></div>
+ <div class="card"><h2>Features</h2><dl id="ft"></dl></div>
+ <div class="card"><h2>Codecs</h2><dl id="cd"></dl></div>
+</section>
+
+<nav id="nav">
+ <button data-t="ov" class="on" data-i="overview">Overview</button><button data-t="hw" data-i="hardware">Hardware</button><button data-t="ds" data-i="display">Display</button><button data-t="nw" data-i="network">Network</button><button data-t="sn" data-i="sensors">Sensors</button><button data-t="pf" data-i="performance">Performance</button><button data-t="br" data-i="browser">Browser</button>
+</nav>
+
+<div id="md"><div class="box"><textarea id="mt" readonly></textarea>
+<div class="row"><button id="mx">TXT</button><button id="mj">JSON</button><button id="mc" data-i="copy">Copy</button><button id="mz" data-i="close">Close</button></div>
+<p class="note">Downloads are blocked inside published pages, so copy the report and paste it into a file.</p></div></div>
+<div id="dp"></div>
+
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const NA='Not available on this browser';
+const store={g(k){try{return localStorage.getItem(k)}catch(e){return null}},s(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const tv=(f,d)=>{try{const v=f();return(v===undefined||v===null||v===''||(typeof v==='number'&&isNaN(v)))?(d===undefined?NA:d):v}catch(e){return d===undefined?NA:d}};
+const mm=q=>tv(()=>matchMedia(q).matches,false);
+const yn=b=>b?'✔ Yes':'✘ No';
+const C={}; // async cache
+
+/* ---------- language ---------- */
+const T={en:{overview:'Overview',hardware:'Hardware',display:'Display',network:'Network',sensors:'Sensors',performance:'Performance',browser:'Browser',copy:'Copy all info',share:'Share as text',export:'Export report',close:'Close',sens:'Start sensors',loc:'Show location',hzt:'Refresh rate test',dead:'Dead pixel test',speed:'Speed test',stress:'10s stress test',cpu:'CPU benchmark',notice:'Browsers cannot access IMEI, serial number, phone number, installed apps or exact hardware model on some devices (especially iPhone). This app only shows what the browser allows.'},
+ur:{overview:'Khulasa',hardware:'Hardware',display:'Display',network:'Network',sensors:'Sensors',performance:'Performance',browser:'Browser',copy:'Sab info copy karo',share:'Text share karo',export:'Report export',close:'Band karo',sens:'Sensors shuru karo',loc:'Location dikhao',hzt:'Refresh rate test',dead:'Dead pixel test',speed:'Speed test',stress:'10 sec stress test',cpu:'CPU benchmark',notice:'Browser IMEI, serial number, phone number, installed apps ya kuch devices par (khaas kar iPhone) exact hardware model nahi dekh sakta. Yeh app sirf wahi dikhati hai jo browser allow karta hai.'}};
+let lang=store.g('dip-lang')||'en';
+const t=k=>(T[lang]&&T[lang][k])||T.en[k]||k;
+const applyLang=()=>$$('[data-i]').forEach(e=>e.textContent=t(e.dataset.i));
+
+/* ---------- UA parsing (fallback) ---------- */
+function parseUA(){
+ const u=navigator.userAgent;let os='Unknown',m;
+ if((m=u.match(/Android ([\d.]+)/)))os='Android '+m[1];
+ else if(/iPhone|iPad/.test(u)&&(m=u.match(/OS ([\d_]+)/)))os='iOS '+m[1].replace(/_/g,'.');
+ else if((m=u.match(/Windows NT ([\d.]+)/)))os='Windows '+m[1];
+ else if(/Mac OS X/.test(u))os='macOS';else if(/Linux/.test(u))os='Linux';
+ let mo=(u.match(/Android[^;]*;\s*([^;)]+?)(?:\sBuild|\))/)||[])[1]||(/iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':NA);
+ let br='Unknown';
+ for(const [n,r] of [['Edge',/Edg\/([\d.]+)/],['Opera',/OPR\/([\d.]+)/],['Samsung Internet',/SamsungBrowser\/([\d.]+)/],['Chrome',/Chrome\/([\d.]+)/],['Firefox',/Firefox\/([\d.]+)/],['Safari',/Version\/([\d.]+).*Safari/]]){const x=u.match(r);if(x){br=n+' '+x[1];break}}
+ return{os,model:mo,br};
+}
+
+/* ---------- row builders (each returns [label,value] pairs) ---------- */
+const net=()=>navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+const fmtT=s=>(s===Infinity||s===undefined)?'Unknown':Math.round(s/60)+' min';
+const rows={
+ ov:()=>{const p=parseUA(),h=C.hi||{};return[
+  ['Device',h.model||p.model],['Platform',h.platform||p.os.split(' ')[0]],['OS version',h.platformVersion?(h.platform+' '+h.platformVersion):p.os],['Browser',p.br],
+  ['Architecture',(h.architecture||NA)+(h.bitness?' / '+h.bitness+'-bit':'')]]},
+ hw:()=>{const g=C.gpu||{},b=C.bat,s=C.sto,d=C.dev||{};return[
+  ['CPU cores',tv(()=>navigator.hardwareConcurrency)],['CPU architecture',(C.hi&&C.hi.architecture)||NA],
+  ['RAM',tv(()=>navigator.deviceMemory?navigator.deviceMemory+' GB (approx.)':undefined)],
+  ['GPU vendor',g.v||NA],['GPU renderer',g.r||NA],['WebGL 1',yn(g.gl1)],['WebGL 2',yn(g.gl2)],['Max texture size',g.tex||NA],['WebGPU',yn('gpu' in navigator)],
+  ['Battery level',b?Math.round(b.level*100)+'%':NA],['Charging',b?(b.charging?'Yes':'No'):NA],
+  ['Time left/to full',b?(b.charging?fmtT(b.chargingTime):fmtT(b.dischargingTime)):NA],
+  ['Storage',s?(s.usage/1048576).toFixed(1)+' MB / '+(s.quota/1073741824).toFixed(1)+' GB':NA],
+  ['Max touch points',tv(()=>navigator.maxTouchPoints,0)],['Pointer',mm('(pointer:coarse)')?'Coarse (touch)':mm('(pointer:fine)')?'Fine (mouse)':NA],['Hover',yn(mm('(hover:hover)'))],
+  ['Cameras',d.cam===undefined?NA:d.cam],['Microphones',d.mic===undefined?NA:d.mic],['Speakers',d.spk===undefined?NA:d.spk]]},
+ ds:()=>[
+  ['Resolution',screen.width+' × '+screen.height],['Available',screen.availWidth+' × '+screen.availHeight],['Viewport',innerWidth+' × '+innerHeight],
+  ['Pixel ratio',devicePixelRatio],['Color depth',screen.colorDepth+' bit'],
+  ['Orientation',tv(()=>screen.orientation.type,mm('(orientation:portrait)')?'portrait':'landscape')],
+  ['Refresh rate',C.hz?C.hz+' Hz':'measuring…'],['HDR',yn(mm('(dynamic-range:high)'))],
+  ['Color gamut',mm('(color-gamut:rec2020)')?'Rec2020':mm('(color-gamut:p3)')?'P3':mm('(color-gamut:srgb)')?'sRGB':NA],
+  ['Dark mode pref.',yn(mm('(prefers-color-scheme:dark)'))],['Reduced motion',yn(mm('(prefers-reduced-motion:reduce)'))]],
+ nw:()=>{const c=net();return[
+  ['Status',navigator.onLine?'✔ Online':'✘ Offline'],['Connection type',tv(()=>c.type)],['Effective type',tv(()=>c.effectiveType)],
+  ['Downlink',tv(()=>c.downlink+' Mbps')],['RTT',tv(()=>c.rtt+' ms')],['Data saver',c&&'saveData' in c?yn(c.saveData):NA]]},
+ sup:()=>[['Accelerometer',yn('Accelerometer' in window||'DeviceMotionEvent' in window)],['Gyroscope',yn('Gyroscope' in window||'DeviceMotionEvent' in window)],
+  ['Orientation',yn('DeviceOrientationEvent' in window)],['Ambient light',yn('AmbientLightSensor' in window)],['Geolocation',yn('geolocation' in navigator)]],
+ pr:()=>{const f=F.n?{a:Math.round(F.sum/F.n),mn:F.min,mx:F.max}:null,s=C.st,c=C.cpu;return[
+  ['FPS now',F.cur],['FPS average',f?f.a:'…'],['FPS min / max',f?f.mn+' / '+f.mx:'…'],
+  ['Stress avg / min / max',s?s.a+' / '+s.mn+' / '+s.mx:'Run test'],['CPU benchmark',c?c.ms+' ms (score '+c.score+')':'Run test'],['Performance Score',score()]]},
+ br:()=>[['Browser',parseUA().br],['User agent',navigator.userAgent],['Languages',tv(()=>navigator.languages.join(', '))],
+  ['Timezone',tv(()=>Intl.DateTimeFormat().resolvedOptions().timeZone)],['Cookies',yn(navigator.cookieEnabled)],
+  ['Do Not Track',tv(()=>navigator.doNotTrack||window.doNotTrack,'Not set')],['PWA / standalone',yn(mm('(display-mode:standalone)')||navigator.standalone)]],
+ ft:()=>{const cv=document.createElement('canvas');return[
+  ['WebGL2',yn(tv(()=>!!cv.getContext('webgl2'),false))],['WebGPU',yn('gpu' in navigator)],['WebAssembly',yn(typeof WebAssembly==='object')],
+  ['Service Worker',yn('serviceWorker' in navigator)],['WebRTC',yn('RTCPeerConnection' in window)],['Bluetooth',yn('bluetooth' in navigator)],
+  ['USB',yn('usb' in navigator)],['NFC',yn('NDEFReader' in window)],['Vibration',yn('vibrate' in navigator)],['Clipboard',yn('clipboard' in navigator)],
+  ['Share API',yn('share' in navigator)],['Notifications',yn('Notification' in window)],['Fullscreen',yn(document.fullscreenEnabled||document.webkitFullscreenEnabled)]]},
+ cd:()=>{const v=document.createElement('video'),a=document.createElement('audio');
+  const ok=(el,type)=>tv(()=>(window.MediaSource&&MediaSource.isTypeSupported(type))||el.canPlayType(type)!=='',false);
+  return[['H.264',yn(ok(v,'video/mp4; codecs="avc1.42E01E"'))],['VP9',yn(ok(v,'video/webm; codecs="vp9"'))],['AV1',yn(ok(v,'video/mp4; codecs="av01.0.05M.08"'))],
+  ['HEVC',yn(ok(v,'video/mp4; codecs="hvc1.1.6.L93.B0"'))],['AAC',yn(ok(a,'audio/mp4; codecs="mp4a.40.2"'))],['Opus',yn(ok(a,'audio/webm; codecs="opus"'))]]}
+};
+const titles={ov:'Overview',hw:'Hardware',ds:'Display',nw:'Network',sup:'Sensor support',pr:'Performance',br:'Browser',ft:'Features',cd:'Codecs'};
+
+/* ---------- render ---------- */
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function fill(id){
+ let r;try{r=rows[id]()}catch(e){r=[['Error',String(e)]]}
+ $('#'+id).innerHTML=r.map(([k,v])=>{const s=String(v),c=s.startsWith('✔')?'ok':s.startsWith('✘')?'no':'';return'<div><dt>'+esc(k)+'</dt><dd class="'+c+'">'+esc(s)+'</dd></div>'}).join('');
+}
+function chips(){
+ const b=C.bat,c=[['CPU',tv(()=>navigator.hardwareConcurrency+' cores')],['RAM',tv(()=>navigator.deviceMemory?navigator.deviceMemory+' GB':undefined)],
+  ['Screen',C.hz?C.hz+' Hz':'…'],['Battery',b?Math.round(b.level*100)+'%':NA],['Network',tv(()=>net().effectiveType)]];
+ $('#chips').innerHTML=c.map(x=>'<div class="chip"><small>'+x[0]+'</small><b>'+esc(x[1])+'</b></div>').join('');
+}
+const ids=Object.keys(rows);
+function renderAll(){ids.forEach(fill);chips();
+ const s=C.sto;if(s)$('#sbar').style.width=Math.min(100,s.usage/s.quota*100)+'%'}
+
+/* ---------- FPS meter ---------- */
+const F={cur:0,sum:0,n:0,min:1e9,max:0};let fr=[],t0=performance.now();
+function loop(now){fr.push(now);while(fr.length&&now-fr[0]>1000)fr.shift();F.cur=fr.length;requestAnimationFrame(loop)}
+function gauge(){
+ const v=F.cur;$('#gn').textContent=v;$('#arc').style.strokeDashoffset=251.3*(1-Math.min(v,144)/144);
+ if(performance.now()-t0>2500&&v>0){F.sum+=v;F.n++;F.min=Math.min(F.min,v);F.max=Math.max(F.max,v)}
+}
+
+/* ---------- refresh rate (3 s) ---------- */
+function detectHz(){
+ return new Promise(res=>{const ts=[],st=performance.now();
+  (function f(n){ts.push(n);if(n-st<3000)requestAnimationFrame(f);else{
+   const d=[];for(let i=1;i<ts.length;i++)d.push(ts[i]-ts[i-1]);d.sort((a,b)=>a-b);
+   const hz=1000/d[d.length>>1];res([30,48,60,75,90,120,144,165,240].reduce((a,b)=>Math.abs(b-hz)<Math.abs(a-hz)?b:a))}})(st)})
+}
+
+/* ---------- score / stress / cpu ---------- */
+function score(){
+ if(!C.st||!C.cpu)return 'Run both tests';
+ return Math.round((Math.min(100,C.st.a/(C.hz||60)*100)+C.cpu.score)/2)+' / 100';
+}
+function cpuBench(){
+ $('#pr').dataset.busy=1;
+ setTimeout(()=>{const s=performance.now();let a=0;for(let i=1;i<4e6;i++)a+=Math.sqrt(i)*Math.sin(i);
+  const ms=Math.max(1,Math.round(performance.now()-s));C.cpu={ms,score:Math.min(100,Math.round(3000/ms))};fill('pr');if(a===12345)console.log(a)},30);
+}
+function stress(){
+ const cv=$('#stc'),x=cv.getContext('2d'),W=cv.width,H=cv.height,P=[];
+ for(let i=0;i<1800;i++)P.push({x:Math.random()*W,y:Math.random()*H,vx:Math.random()*4-2,vy:Math.random()*4-2});
+ const samples=[],st=performance.now();let cnt=0,lt=st;
+ (function f(n){
+  x.fillStyle='rgba(0,0,0,.35)';x.fillRect(0,0,W,H);
+  P.forEach((p,i)=>{p.x=(p.x+p.vx+W)%W;p.y=(p.y+p.vy+H)%H;x.fillStyle='hsl('+((i*3+n/10)%360)+',100%,60%)';x.beginPath();x.arc(p.x,p.y,2.2,0,6.28);x.fill()});
+  cnt++;if(n-lt>=250){samples.push(Math.round(cnt*1000/(n-lt)));cnt=0;lt=n}
+  if(n-st<10000)requestAnimationFrame(f);else{
+   C.st={a:Math.round(samples.reduce((a,b)=>a+b,0)/samples.length),mn:Math.min(...samples),mx:Math.max(...samples)};
+   graph(samples);fill('pr')}
+ })(st);
+}
+function graph(s){
+ const g=$('#gr'),x=g.getContext('2d'),W=g.width,H=g.height,m=Math.max(144,...s);
+ x.clearRect(0,0,W,H);x.strokeStyle='#00ffc3';x.lineWidth=2;x.beginPath();
+ s.forEach((v,i)=>{const px=i/(s.length-1)*W,py=H-v/m*(H-10)-5;i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();
+ x.fillStyle='#86aea3';x.font='10px sans-serif';x.fillText('FPS stability (max '+m+')',6,12);
+}
+
+/* ---------- sensors ---------- */
+const SB=[['Accel X','ax',10],['Accel Y','ay',10],['Accel Z','az',10],['Gyro α','ga',200],['Gyro β','gb',200],['Gyro γ','gg',200],['Orient α','oa',360],['Orient β','ob',180],['Orient γ','og',90]];
+function sensors(){
+ $('#sbx').innerHTML=SB.map(b=>'<div class="sb"><span>'+b[0]+'</span><div class="bar"><i id="b-'+b[1]+'"></i></div><span id="v-'+b[1]+'">–</span></div>').join('');
+}
+const setS=(k,v,m)=>{if(v==null)return;const e=$('#b-'+k);if(!e)return;e.style.width=Math.min(100,Math.abs(v)/m*100)+'%';$('#v-'+k).textContent=v.toFixed(1)};
+async function startSens(){
+ try{
+  for(const E of [window.DeviceMotionEvent,window.DeviceOrientationEvent]){
+   if(E&&typeof E.requestPermission==='function'){const r=await E.requestPermission();if(r!=='granted')throw new Error('Permission denied')}}
+  if(!('DeviceMotionEvent' in window)&&!('DeviceOrientationEvent' in window))throw new Error(NA);
+  window.addEventListener('devicemotion',e=>{const a=e.accelerationIncludingGravity||{},r=e.rotationRate||{};
+   setS('ax',a.x,10);setS('ay',a.y,10);setS('az',a.z,10);setS('ga',r.alpha,200);setS('gb',r.beta,200);setS('gg',r.gamma,200)});
+  window.addEventListener('deviceorientation',e=>{setS('oa',e.alpha,360);setS('ob',e.beta,180);setS('og',e.gamma,90)});
+  $('#bse').textContent='✔ Running';
+ }catch(e){$('#sbx').insertAdjacentHTML('afterbegin','<p class="no">'+esc(e.message||e)+'</p>')}
+}
+function geo(){
+ const o=$('#geo');if(!navigator.geolocation){o.textContent=NA;return}
+ o.textContent='…';
+ navigator.geolocation.getCurrentPosition(p=>{o.textContent='Lat '+p.coords.latitude.toFixed(5)+', Lon '+p.coords.longitude.toFixed(5)+', accuracy ±'+Math.round(p.coords.accuracy)+' m'},e=>{o.textContent=e.message},{timeout:15000});
+}
+
+/* ---------- network speed (same-origin only, no external calls) ---------- */
+async function speed(){
+ const o=$('#spd');o.textContent='…';
+ try{
+  const p=[];for(let i=0;i<4;i++){const s=performance.now();await fetch(location.href,{method:'HEAD',cache:'no-store'});p.push(performance.now()-s)}
+  const s=performance.now(),b=await(await fetch(location.href,{cache:'no-store'})).blob(),sec=(performance.now()-s)/1000;
+  o.textContent='Ping ~'+Math.round(Math.min(...p))+' ms · ~'+(b.size*8/sec/1e6).toFixed(1)+' Mbps (rough estimate from a small file, ping is to this page)';
+ }catch(e){o.textContent=NA}
+}
+
+/* ---------- display tests ---------- */
+function dead(){
+ const d=$('#dp'),cols=['#f00','#0f0','#00f','#fff','#000'];let i=0;
+ const show=()=>{if(i>=cols.length){d.classList.remove('on');if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});return}d.style.background=cols[i++]};
+ d.onclick=show;d.classList.add('on');
+ try{d.requestFullscreen&&d.requestFullscreen().catch(()=>{})}catch(e){}
+ show();
+}
+
+/* ---------- report / copy / share ---------- */
+function report(){const o={};ids.forEach(id=>{try{o[titles[id]]=Object.fromEntries(rows[id]())}catch(e){}});return o}
+const asTxt=()=>{const r=report();return'DEVICE INFO PRO\n'+new Date().toISOString()+'\n\n'+Object.keys(r).map(k=>'['+k+']\n'+Object.entries(r[k]).map(([a,b])=>a+': '+b).join('\n')).join('\n\n')};
+const asJson=()=>JSON.stringify(report(),null,2);
+async function copy(txt){
+ try{await navigator.clipboard.writeText(txt);return true}catch(e){
+  try{const ta=$('#mt');ta.value=txt;ta.select();return document.execCommand('copy')}catch(_){return false}}
+}
+function flash(b,m){const o=b.textContent;b.textContent=m;setTimeout(()=>b.textContent=o,1200)}
+
+/* ---------- init ---------- */
+async function gather(){
+ try{if(navigator.userAgentData)C.hi=await navigator.userAgentData.getHighEntropyValues(['model','platform','platformVersion','architecture','bitness'])}catch(e){}
+ try{const cv=document.createElement('canvas'),g1=cv.getContext('webgl')||cv.getContext('experimental-webgl'),g2=document.createElement('canvas').getContext('webgl2');
+  C.gpu={gl1:!!g1,gl2:!!g2};
+  if(g1){C.gpu.tex=g1.getParameter(g1.MAX_TEXTURE_SIZE);const e=g1.getExtension('WEBGL_debug_renderer_info');
+   if(e){C.gpu.v=g1.getParameter(e.UNMASKED_VENDOR_WEBGL);C.gpu.r=g1.getParameter(e.UNMASKED_RENDERER_WEBGL)}}}catch(e){}
+ try{if(navigator.getBattery)C.bat=await navigator.getBattery()}catch(e){}
+ try{if(navigator.storage&&navigator.storage.estimate)C.sto=await navigator.storage.estimate()}catch(e){}
+ try{if(navigator.mediaDevices&&navigator.mediaDevices.enumerateDevices){const d=await navigator.mediaDevices.enumerateDevices();
+  C.dev={cam:d.filter(x=>x.kind==='videoinput').length,mic:d.filter(x=>x.kind==='audioinput').length,spk:d.filter(x=>x.kind==='audiooutput').length}}}catch(e){}
+ renderAll();
+}
+function init(){
+ const th=store.g('dip-theme');if(th)document.documentElement.dataset.theme=th;
+ applyLang();sensors();
+ ids.forEach(id=>$('#'+id).innerHTML='<div class="sk"></div><div class="sk"></div><div class="sk"></div>');
+ $('#nav').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  $$('nav button').forEach(x=>x.classList.toggle('on',x===b));$$('.pn').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.t));scrollTo(0,0)};
+ $('#bl').onclick=()=>{lang=lang==='en'?'ur':'en';store.s('dip-lang',lang);applyLang()};
+ $('#bt').onclick=()=>{const r=document.documentElement,n=r.dataset.theme==='light'?'dark':'light';r.dataset.theme=n;store.s('dip-theme',n)};
+ $('#bc').onclick=async e=>flash(e.target,(await copy(asTxt()))?'✔ Copied':'✘ Failed');
+ $('#bs').onclick=async e=>{const x=asTxt();try{if(navigator.share)await navigator.share({title:'Device Info Pro',text:x});else flash(e.target,(await copy(x))?'✔ Copied':'✘ Failed')}catch(_){}};
+ $('#be').onclick=()=>{$('#mt').value=asTxt();$('#md').classList.add('on')};
+ $('#mx').onclick=()=>$('#mt').value=asTxt();$('#mj').onclick=()=>$('#mt').value=asJson();
+ $('#mc').onclick=async e=>flash(e.target,(await copy($('#mt').value))?'✔ Copied':'✘ Failed');
+ $('#mz').onclick=()=>$('#md').classList.remove('on');
+ $('#bh').onclick=async()=>{C.hz=0;C.hz=await detectHz();renderAll()};
+ $('#bd').onclick=dead;$('#bsp').onclick=speed;$('#bse').onclick=startSens;$('#blo').onclick=geo;
+ $('#bst').onclick=stress;$('#bcp').onclick=cpuBench;
+ addEventListener('online',()=>fill('nw'));addEventListener('offline',()=>fill('nw'));addEventListener('resize',()=>fill('ds'));
+ requestAnimationFrame(loop);
+ gather();
+ detectHz().then(h=>{C.hz=h;renderAll()});
+ setInterval(()=>{gauge();['ov','hw','nw','pr'].forEach(fill);chips()},1000);
+}
+init();
+})();
+</script>
+</body>
+</html>
